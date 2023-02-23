@@ -3,9 +3,28 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/authentication 2/authorization_code/public/styles/app.css">
+  <!-- <style>
+    li{
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: red;
+    }
+  </style> -->
   <title>Document</title>
 </head>
 <body>
+  <ul id="my-list"></ul>
+  <script>
+    var json_str = '{{ songs | tojson }}'
+    var data = JSON.parse(json_str);
+    var list = document.getElementById("my-list");
+    for (var i = 0; i < data.length; i++) {
+        var item = document.createElement("li");
+        item.innerText = data[i]["name"] + " from " + data[i]["date"];
+        list.appendChild(item);
+      }
+    
+  </script>
   
 </body>
 </html>

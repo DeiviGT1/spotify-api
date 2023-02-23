@@ -6,8 +6,10 @@ import string
 import spotipy.util as util
 import spotipy
 import urllib
+import json
 from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOAuth
 import re
+import numpy as np
 import urllib.parse
 from urllib.parse import urlparse
 
@@ -21,21 +23,6 @@ stateKey = 'user-library-read'
 def generate_random_string(length):
     letters = string.ascii_uppercase + string.ascii_lowercase + string.digits
     return ''.join(random.choice(letters) for i in range(length))
-
-#create a function to get the hash params from the url
-def get_hash_params():
-  params = {}
-  #get url parsed
-  parsed_url = urlparse(request.url)
-  #get the query params and split them
-  query_params = parsed_url.query.split("&")
-  #loop through the query params
-  for param in query_params:
-    #split the param
-    param = param.split('=')
-    #add the param to the dictionary
-    params[param[0]] = param[1]
-  return params
 
 @app.before_request
 def before_request():
@@ -94,14 +81,25 @@ def callback():
 @app.route('/most_listened_songs')
 def most_listened_songs():
   sp_oauth = spotipy.Spotify(auth=session['access_token'])
-  results = sp_oauth.current_user_saved_tracks_add()
-  # dict_ = {}
-  # for i in results['items']:
-  #   dict_[i['track']['name']] = i['track']['name']
-  return results
+  offset = 0
+  limit = 50
+  arr = []
+  while True and offset < 100:
+    results = sp_oauth.current_user_saved_tracks(limit=limit, offset=offset)
+    for i in results['items']:
+      dict_ = {}
+      dict_["name"] = i['track']['name']
+      dict_["date"] = i['added_at']
+      arr.extend([dict_])
+    offset += len(results['items'])
+    if len(results['items']) < limit:
+        break
+  
+  
+  return render_template('app.html', songs=arr)
 
 @app.route('/refresh_token')
-def refresh_tok1en():
+def refresh_token():
   code = request.args.get('code')
   refresh_token = session['refresh_token']
   post_data = {'code': code, 
