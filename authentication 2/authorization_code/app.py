@@ -15,8 +15,8 @@ from urllib.parse import urlparse
 
 app = Flask(__name__, template_folder="public")
 
-client_id = 'CLIENT_ID' 
-client_secret = 'CLIENT_SECRET'
+client_id = '4e90e934295b4cb984d8ac90deab6d69' 
+client_secret = '43f77b42f24f4ac4bb75552326377c5d'
 redirect_uri = 'http://localhost:2000/callback'
 stateKey = 'user-library-read'
 
