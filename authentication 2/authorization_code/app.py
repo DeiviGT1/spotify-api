@@ -6,6 +6,7 @@ import spotipy
 import urllib
 import time
 import urllib.parse
+import base64
 import pandas as pd
 from datetime import datetime, timedelta
 from spotipy.oauth2 import SpotifyOAuth
@@ -43,41 +44,46 @@ def before_request():
 def index():
   return render_template('index.html')
 
-@app.route('/login')
+@app.route("/login")
 def login():
-  #Acá ingresamos a la página de spotify para que el usuario se loguee
-  state = generate_random_string(16)
-  session[stateKey] = state
+    client_id = "YOUR_CLIENT_ID"
+    redirect_uri = "http://localhost:5000/callback"
+    scopes = ["user-read-recently-played"]
 
-  #Redirigimos la pagina al callback
-  return redirect('https://accounts.spotify.com/authorize?client_id=' + client_id + '&response_type=code&redirect_uri=' + redirect_uri + '&state=' + state + '&scope=' + stateKey)
+    # Redirect user to Spotify authorization endpoint
+    auth_url = "https://accounts.spotify.com/authorize"
+    params = {
+        "client_id": client_id,
+        "response_type": "code",
+        "redirect_uri": redirect_uri,
+        "scope": " ".join(scopes)
+    }
+    url = auth_url + "?" + "&".join([f"{key}={value}" for key, value in params.items()])
+    return redirect(url)
 
-@app.route('/callback')
+@app.route("/callback")
 def callback():
-  code = request.args.get('code')
-  state = request.args.get('state')
-  
-  if state is None:
-    return redirect('/#' + urllib.parse.urlencode({'error': 'state_mismatch'}))
-  else:
-    session.pop(stateKey, None)
-    post_data = {
-      'code': code, 
-      'redirect_uri': redirect_uri, 
-      'grant_type': 'authorization_code',
-      "client_id": client_id,
-      "client_secret": client_secret
-      }
-    
-    SPOTIFY_TOKEN = 'https://accounts.spotify.com/api/token'
-    r = requests.post( SPOTIFY_TOKEN, data=post_data, timeout=30)
-    response_data = r.json()
-    session['access_token'] = response_data['access_token']
-    #session['refresh_token'] = response_data['refresh_token']
-    #session['token_type'] = response_data['token_type']
-    #session['expires_in'] = response_data['expires_in']
+    client_id = "YOUR_CLIENT_ID"
+    client_secret = "YOUR_CLIENT_SECRET"
+    redirect_uri = "http://localhost:5000/callback"
 
-    return redirect("/user_top_artists_and_content")
+    # Exchange authorization code for access token
+    authorization_code = request.args.get("code")
+    token_url = "https://accounts.spotify.com/api/token"
+    headers = {"Authorization": f"Basic {base64.b64encode(f'{client_id}:{client_secret}'.encode()).decode()}"}
+    data = {
+        "grant_type": "authorization_code",
+        "code": authorization_code,
+        "redirect_uri": redirect_uri
+    }
+    response = requests.post(token_url, headers=headers, data=data)
+
+    if response.status_code != 200:
+        raise Exception("Failed to retrieve access token")
+
+    access_token = response.json()["access_token"]
+    return access_token
+
 
 @app.route('/saved_songs')
 def saved_songs():
