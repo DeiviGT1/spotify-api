@@ -5,8 +5,8 @@ import string
 import spotipy
 import urllib
 import time
+import datetime as dt
 import urllib.parse
-import base64
 import pandas as pd
 from datetime import datetime, timedelta
 from spotipy.oauth2 import SpotifyOAuth
@@ -17,8 +17,8 @@ app = Flask(__name__, template_folder="public")
 
 client_id = '4e90e934295b4cb984d8ac90deab6d69' 
 client_secret = '43f77b42f24f4ac4bb75552326377c5d'
-redirect_uri = 'http://127.0.0.1:4000/callback'
-stateKey = 'user-top-read'
+redirect_uri = 'http://127.0.0.1:2000/callback'
+stateKey = 'user-read-recently-played'
 
 headers = ({
             'Content-Type': "application/json",
@@ -44,46 +44,41 @@ def before_request():
 def index():
   return render_template('index.html')
 
-@app.route("/login")
+@app.route('/login')
 def login():
-    client_id = "YOUR_CLIENT_ID"
-    redirect_uri = "http://localhost:5000/callback"
-    scopes = ["user-read-recently-played"]
+  #Acá ingresamos a la página de spotify para que el usuario se loguee
+  state = generate_random_string(16)
+  session[stateKey] = state
+  
+  #Redirigimos la pagina al callback
+  return redirect('https://accounts.spotify.com/authorize?client_id=' + client_id + '&response_type=code&redirect_uri=' + redirect_uri + '&state=' + state + '&scope=' + stateKey)
 
-    # Redirect user to Spotify authorization endpoint
-    auth_url = "https://accounts.spotify.com/authorize"
-    params = {
-        "client_id": client_id,
-        "response_type": "code",
-        "redirect_uri": redirect_uri,
-        "scope": " ".join(scopes)
-    }
-    url = auth_url + "?" + "&".join([f"{key}={value}" for key, value in params.items()])
-    return redirect(url)
-
-@app.route("/callback")
+@app.route('/callback')
 def callback():
-    client_id = "YOUR_CLIENT_ID"
-    client_secret = "YOUR_CLIENT_SECRET"
-    redirect_uri = "http://localhost:5000/callback"
+  code = request.args.get('code')
+  state = request.args.get('state')
+  
+  if state is None:
+    return redirect('/#' + urllib.parse.urlencode({'error': 'state_mismatch'}))
+  else:
+    session.pop(stateKey, None)
+    post_data = {
+      'code': code, 
+      'redirect_uri': redirect_uri, 
+      'grant_type': 'authorization_code',
+      "client_id": client_id,
+      "client_secret": client_secret
+      }
+    
+    SPOTIFY_TOKEN = 'https://accounts.spotify.com/api/token'
+    r = requests.post( SPOTIFY_TOKEN, data=post_data, timeout=30)
+    response_data = r.json()
+    session['access_token'] = response_data['access_token']
+    #session['refresh_token'] = response_data['refresh_token']
+    #session['token_type'] = response_data['token_type']
+    #session['expires_in'] = response_data['expires_in']
 
-    # Exchange authorization code for access token
-    authorization_code = request.args.get("code")
-    token_url = "https://accounts.spotify.com/api/token"
-    headers = {"Authorization": f"Basic {base64.b64encode(f'{client_id}:{client_secret}'.encode()).decode()}"}
-    data = {
-        "grant_type": "authorization_code",
-        "code": authorization_code,
-        "redirect_uri": redirect_uri
-    }
-    response = requests.post(token_url, headers=headers, data=data)
-
-    if response.status_code != 200:
-        raise Exception("Failed to retrieve access token")
-
-    access_token = response.json()["access_token"]
-    return access_token
-
+    return redirect("/recently_played")
 
 @app.route('/saved_songs')
 def saved_songs():
@@ -111,7 +106,6 @@ def user_top_artists_and_content():
   stateKey = 'user-top-read'
   sp_oauth = spotipy.Spotify(auth=session['access_token'])
   results = sp_oauth.current_user_top_tracks()
-  return results
   arr = []
   for i in results['items']:
     dict_ = {}
@@ -148,20 +142,20 @@ def user_playback_state():
 def recently_played():
   stateKey = 'user-read-recently-played'
   sp_oauth = spotipy.Spotify(auth=session['access_token'])
-  date_format = "%Y-%m-%dT%H:%M:%S.%fZ"
+  format_datetime = "%Y-%m-%dT%H:%M:%S.%fZ"
   arr = []
-  results = sp_oauth.current_user_recently_played(limit=50)
-  return results
-  last_6_months = int((datetime.now() - timedelta(hours=1)).timestamp() * 1000) # get last 6 months
-  before = int(time.time() * 1000) # current time in milliseconds
-  results = sp_oauth.current_user_recently_played(limit=50, before=None)
-  return results
-  while before > last_6_months:
+  last_6_months = int((datetime.now() - timedelta(hours=1)).timestamp()*1000) # get last 6 months
+  before = int(datetime.now().timestamp()*1000) # current time in milliseconds
+  for i in range():
+    results = sp_oauth.current_user_recently_played(limit=50, before=before)
     if len(results['items']) == 0:
+      return "HEY"
       break
-    arr += results
-    before = int(datetime.strptime(results['items'][-1]['played_at'], date_format).timestamp() * 1000)
+    arr = arr + results["items"]
+    before = int(time.mktime(dt.datetime.strptime(results['items'][-1]['played_at'], format_datetime).timetuple())*1000)
+  return arr
 
+  return arr
   my_dict = {}
   for index, k in enumerate(arr):
     my_dict[index] = f"{k}"
@@ -224,5 +218,5 @@ def refresh_token():
 
 if __name__ == '__main__':
   app.secret_key = 'super secret key'
-  app.run(host="127.0.0.1", port=4000, debug=True)
+  app.run(host="127.0.0.1", port=2000, debug=True)
 
