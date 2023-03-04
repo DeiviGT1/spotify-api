@@ -6,6 +6,7 @@ import spotipy
 import urllib
 import time
 import datetime as dt
+import itertools
 import urllib.parse
 import pandas as pd
 from datetime import datetime, timedelta
@@ -144,15 +145,34 @@ def recently_played():
   sp_oauth = spotipy.Spotify(auth=session['access_token'])
   format_datetime = "%Y-%m-%dT%H:%M:%S.%fZ"
   arr = []
-  last_6_months = int((datetime.now() - timedelta(hours=1)).timestamp()*1000) # get last 6 months
-  before = int(datetime.now().timestamp()*1000) # current time in milliseconds
-  for i in range():
-    results = sp_oauth.current_user_recently_played(limit=50, before=before)
-    if len(results['items']) == 0:
-      return "HEY"
-      break
-    arr = arr + results["items"]
-    before = int(time.mktime(dt.datetime.strptime(results['items'][-1]['played_at'], format_datetime).timetuple())*1000)
+  # after = int((datetime.now() - timedelta(hours=24)).timestamp()*1000)
+  before_time = int(datetime.now().timestamp()*1000) # current time in milliseconds
+  for i in range(2):
+    results = sp_oauth.current_user_recently_played(limit=50, before=before_time)
+    arr.extend([results])
+    # # if len(results['items']) == 0:
+    # #   return "HEY"
+    # #   break
+    # # for dato in results["items"]:
+    # #   dict_ = {}
+    # #   count = 0
+    # #   dict_["played_at"] = datetime.strptime(dato['played_at'], format_datetime)
+    # #   dict_["id"] = dato['track']['id']
+    # #   dict_["name"] = dato['track']['name']
+    # #   for j in dato['track']['artists']:
+    # #     dict_[f"artist_{count}"] = j['name']
+    # #     count += 1
+    # #   dict_["duration"] = dato['track']['duration_ms']
+    # #   dict_["popularity"] = dato['track']['popularity']
+    # #   arr.extend([dict_])
+    before_time = int(time.mktime(dt.datetime.strptime(results['items'][-1]['played_at'], format_datetime).timetuple()))*1000
+    new_results = sp_oauth.current_user_recently_played(limit=50, before=before_time)
+    new_before_time = int(time.mktime(dt.datetime.strptime(new_results['items'][-1]['played_at'], format_datetime).timetuple()))*1000
+    newest_results = sp_oauth.current_user_recently_played(limit=50, before=new_before_time)
+    newest_before_time = int(time.mktime(dt.datetime.strptime(newest_results['items'][-1]['played_at'], format_datetime).timetuple()))*1000
+    return str(f" first time: {before_time} - {results['items'][-1]['played_at']} / new before time: {new_before_time} - {new_results['items'][-1]['played_at']} / newest before time: {newest_before_time} - {newest_results['items'][-1]['played_at']}")
+    # if before < last_6_months:
+    #   return "OELO"
   return arr
 
   return arr
