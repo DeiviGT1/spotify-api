@@ -16,94 +16,53 @@ scope = 'user-read-recently-played'
 def index():
     return render_template("index.html")
 
-@app.route('/login')
-def login():
-  #Acá ingresamos a la página de spotify para que el usuario se loguee
-  #Redirigimos la pagina al callback
-  return redirect(f'https://accounts.spotify.com/authorize?client_id={client_id}&response_type=code&redirect_uri={redirect_uri}&scope={scope}')
+from flask import Flask, render_template, request, make_response, redirect
+import requests
 
-@app.route('/callback')
-def callback():
-    # Codificamos el cliente
-    access_token = get_token(client_id, client_secret, scope="user-read-recently-played")
+# Página para obtener el token de acceso
+@app.route('/login')
+def get_token():
+    # Obtener el código de autorización proporcionado por Spotify
+    authorization_code = request.args.get('code')
+    return str(authorization_code)
+
+    # Intercambiar el código de autorización por un token de acceso
+    auth_response = requests.post('https://accounts.spotify.com/api/token', {
+        'grant_type': 'authorization_code',
+        'code': authorization_code,
+        'redirect_uri': redirect_uri,
+        'client_id': client_id,
+        'client_secret': client_secret,
+    })
+
+    # Obtener el token de acceso de la respuesta
+    auth_response_data = auth_response.json()
+    return auth_response_data
+    access_token = auth_response_data['access_token']
+
+    # Devolver el token de acceso en la respuesta HTTP
     response = make_response('Token generated successfully')
     response.headers['access_token'] = access_token
-    return redirect(f'/recently-played')
 
-@app.route('/recently-played')
-def recently_played():
-  # Codificamos el cliente
-  endpoint = "https://api.spotify.com/v1/me/player/recently-played"
-  headers = request.headers.get('access_token')
-  return str(headers)
-  #Obtenemos los datos del usuario
-  response = requests.get(endpoint, headers=headers)
-  json_response = json.loads(response.content)
+    # Redirigir al usuario a la página de uso del token
+    return redirect('/use_token')
 
-  return json_response    
+# Página para usar el token de acceso
+@app.route('/use_token')
+def use_token():
+    # Obtener el token de acceso del encabezado HTTP de la solicitud entrante
+    access_token = request.headers.get('access_token')
 
-    
+    # Usar el token de acceso para hacer solicitudes a la API de Spotify
+    response = requests.get('https://api.spotify.com/v1/me', headers={
+        'Authorization': 'Bearer ' + access_token
+    })
 
-def get_token(client_id, client_secret, scope = None):
-  #Codificamos el cliente 
-  client_creds = f"{client_id}:{client_secret}"
-  client_creds_b64 = base64.b64encode(client_creds.encode())
-  #Ruta del endpoint de la API de spotify para obtenerlo
-  token_endpoint = "https://accounts.spotify.com/api/token"
-  #paramertros para el token y credenciales de la solicitud
-  token_data = {
-    "grant_type": "client_credentials",
-    "scope" : f"{scope}"
-}
-  token_headers = {
-      "Authorization": f"Basic {client_creds_b64.decode()}"
-  }
-  # Solicitud del toke y respuesta en JSON
-  token_response = requests.post(token_endpoint, data=token_data, headers=token_headers)
-  token_json_response = token_response.json()
-  api_key = token_json_response['access_token']
-  return api_key
+    # Obtener los datos de usuario de la respuesta
+    user_data = response.json()
 
-def get_recently_played(api_key):
-  endpoint = "https://api.spotify.com/v1/me/player/recently-played"
-  headers = {"Authorization": f"Bearer {api_key}"}
-
-  response = requests.get(endpoint, headers=headers)
-  json_response = json.loads(response.content)
-
-  return json_response
-
-def get_recently_played_tracks(access_token):
-    # Hacer una solicitud a la API de Spotify para obtener el historial de reproducciones del usuario
-    url = "https://api.spotify.com/v1/me/player/recently-played?limit=10"
-    headers = {"Authorization": "Bearer " + access_token}
-    response = requests.get(url, headers=headers)
-
-    # Procesar los datos de la respuesta
-    if response.status_code == 200:
-        tracks = []
-        data = json.loads(response.content)
-        for item in data["items"]:
-            track = item["track"]
-            tracks.append({
-                "name": track["name"],
-                "artist": track["artists"][0]["name"],
-                "album": track["album"]["name"],
-                "date": item["played_at"]
-            })
-        return tracks
-    else:
-        print("Error al obtener los datos del usuario:", response.status_code)
-        return None
-
-api_key = get_token(client_id, client_secret, scope="user-read-recently-played")
+    # Devolver los datos de usuario en la página web
+    return user_data
 
 if __name__ == "__main__":
-  app.run(host="127.0.0.1", port=2000, debug=True)
-
-
-# playlist_endpoint = "https://api.spotify.com/v1/playlists/0zUlV7QuNqu31SCTlGRo9X"
-# headers = {"Authorization": f"Bearer {api_key}"}
-
-# response = requests.get(playlist_endpoint, headers=headers)
-# json_response = json.loads(response.content)
+    app.run(debug=True, port=2000)
