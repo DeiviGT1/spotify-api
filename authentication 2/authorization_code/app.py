@@ -6,22 +6,33 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
-from uvicorn.workers import UvicornWorker
+from urllib.parse import urlparse, parse_qs
+from uvicorn import run
 from spotify import app_Authorization, user_Authorization, Album_Data, Profile_Data, Playlist_Data
 
-app = FastAPI(__name__)
+app = FastAPI()
 templates = Jinja2Templates(directory="public")
 
-@app.route("/")
+@app.get("/")
 def index():
     # Authorization
+    return RedirectResponse("/login")
+    
+
+@app.get("/login")
+def login():
     auth_url = app_Authorization()
+    parsed_url = urlparse(auth_url)
+    query_params = parse_qs(parsed_url.query)
+    auth_token = query_params.get('code')
+    return auth_url 
     return RedirectResponse(auth_url)
 
-@app.route("/callback/q")
+@app.get("/callback")
 def callback():
+    # authorization_header = user_Authorization(auth_url)
     authorization_header = user_Authorization()
-
+    
     #Gathering of profile data
     profile_data = Profile_Data(authorization_header)
     Name = profile_data["display_name"]
@@ -69,6 +80,5 @@ def callback():
     return str(x)
     # return templates.TemplateResponse("index.html", x = track_hold)
 
-
 if __name__ == "__main__":
-    UvicornWorker.run(app, reload=True, port=8080)
+    run(app= "app:app", port=4000, host="localhost", reload=True)
