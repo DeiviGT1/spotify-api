@@ -1,69 +1,74 @@
-import requests
-import base64
-import urllib
+#**********************************************************************************
+#Spotify_Handle V0.01
+#By:Ben Bellerose
+#Description: This is the routing for spotify example.
+#**********************************************************************************
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
-from fastapi import FastAPI, Request, Response, status
+from uvicorn.workers import UvicornWorker
+from spotify import app_Authorization, user_Authorization, Album_Data, Profile_Data, Playlist_Data
 
-redirect_uri = 'http://localhost:4000/callback'
-scope = "user-read-recently-played user-read-email"
-token_url = 'https://accounts.spotify.com/api/token'
-client_id='4e90e934295b4cb984d8ac90deab6d69'
-client_secret='43f77b42f24f4ac4bb75552326377c5d'
-
-def get_token(client_id, client_secret):
-  client_str = f'{client_id}:{client_secret}'
-  client_encode = base64.b64encode(client_str.encode("utf-8"))  # Codificado en Bytes
-  client_encode = str(client_encode, "utf-8") 
-
-  params = {'grant_type': 'client_credentials', 'scope': scope}
-  headers = {'Authorization': f'Basic {client_encode}'}
-
-  r = requests.post(token_url, data=params, headers=headers)
-  token  = r.json()["access_token"]
-  return token
-
-api_token = get_token(client_id, client_secret)
-header = {'Authorization': f'Bearer {api_token}'}
-
-app = FastAPI()
+app = FastAPI(__name__)
 templates = Jinja2Templates(directory="public")
 
-@app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+@app.route("/")
+def index():
+    # Authorization
+    auth_url = app_Authorization()
+    return RedirectResponse(auth_url)
 
-@app.get("/login")
-def login():
-  #Redirigimos la pagina al callback
-  return RedirectResponse(f'https://accounts.spotify.com/authorize?client_id={client_id}&response_type=code&redirect_uri={redirect_uri}&state={scope}&scope={scope}')
-
-@app.get("/callback")
+@app.route("/callback/q")
 def callback():
-  return RedirectResponse('/user_id')
+    authorization_header = user_Authorization()
 
-@app.get("/user_id")
-def user_id():
-  url = f"https://api.spotify.com/v1/me"
-  r = requests.get(f'{url}', headers=header)
-  return str(r)
+    #Gathering of profile data
+    profile_data = Profile_Data(authorization_header)
+    Name = profile_data["display_name"]
+    external_urls = profile_data["external_urls"]
+    uri = profile_data["uri"]
+    href = profile_data["href"]
+    followers = profile_data["followers"]["total"]
+    images = profile_data["images"]
+
+    #Gathering of playlist data
+    playlist_data = Playlist_Data(authorization_header,profile_data)
+    x = 0
+    playlist_url = []
+    playlist_tracks = []
+    playlist_titles = []
+    while x < len(playlist_data["items"]):
+        playlist_tracks.insert(len(playlist_tracks),playlist_data["items"][x]["tracks"]['total'])
+        playlist_url.insert(len(playlist_url),playlist_data["items"][x]["tracks"]['href'])
+        playlist_titles.insert(len(playlist_titles),playlist_data["items"][x]["name"])
+        x = x + 1
+
+    #Gathering of album data
+    artist_data = Album_Data(authorization_header,profile_data,50,0)
+    x = 0
+    album_titles = []
+    album_uri = []
+    album_label = []
+    album_tracknames = []
+    album_trackartist = []
+    while x < len(artist_data["items"]):
+        b = 0
+        while b < len(artist_data["items"][x]["album"]["tracks"]['items']):
+            album_titles.insert(len(album_titles),artist_data["items"][x]["album"]["name"])
+            album_uri.insert(len(album_uri),artist_data["items"][x]["album"]["uri"])
+            album_label.insert(len(album_label),artist_data["items"][x]["album"]["label"])
+            album_tracknames.insert(len(album_tracknames),artist_data["items"][x]["album"]["tracks"]['items'][b]["name"])
+            album_trackartist.insert(len(album_trackartist),artist_data["items"][x]["album"]["tracks"]['items'][b]["artists"][0]['name'])
+            b = b + 2
+        x = x + 1
+    track_hold = {'artist': album_trackartist, 'titles': album_tracknames, 'album': album_titles, 'label': album_label}
+    track_hold = zip(track_hold['artist'],track_hold['titles'], track_hold['album'],track_hold['label'])
+
+    # Combine profile and playlist data to display
+    display_arr = [profile_data] + [playlist_data["items"][0]] + [artist_data["items"][0]["album"]]
+    return str(x)
+    # return templates.TemplateResponse("index.html", x = track_hold)
 
 
-@app.get("/recently_played/{user_id}")
-def recently_played(user_id: str):
-  url = f"https://api.spotify.com/v1/users/{user_id}/playlists"
-  r = requests.get(f'{url}', headers=header)
-  return str(r)
-
-
-
-# @app.route('/recently_played')
-# def recently_played():
-#   user_id = 
-#   url = f"https://api.spotify.com/v1/users/{user_id}/playlists"
-#   r = requests.get(f'{url}', headers=header)
-#   return str(r.status_code)
-
-# r = requests.get(f'{url}', headers=header)
-# print(r.json())
+if __name__ == "__main__":
+    UvicornWorker.run(app, reload=True, port=8080)
