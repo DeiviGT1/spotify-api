@@ -10,8 +10,6 @@ client = MongoClient('mongodb://localhost:27017/')
 db = client['songs']
 collection = db['songs']
 
-user_id = "317ucfcdwpjhmasybsnbqc2j53jy"
-
 def read_mongo(query={}, projection=None):
     """ Read from Mongo and return data in JSON format """
     # Make a query to the specific DB and Collection
@@ -27,8 +25,8 @@ def delete_all_documents(query={}):
     result = collection.delete_many(query)
     return result.deleted_count
 
-def analyze_average_popularity_per_album():
-  data = read_mongo(projection={'info.popularity': 1, 'info.playlist_name': 1, '_id': 0})
+def analyze_average_popularity_per_album(user_id):
+  data = read_mongo(query={'info.user_id': user_id} ,projection={'info.popularity': 1, 'info.playlist_name': 1, '_id': 0})
   data = json.loads(data)
   data = [x['info'] for x in data]
   result = defaultdict(list)

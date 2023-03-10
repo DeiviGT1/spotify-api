@@ -73,7 +73,7 @@ def callback():
 
     delete_all_documents({'info.user_id': user_id})
     Mongo_Song_Data(songs)
-    avg_per_playlist = analyze_average_popularity_per_album()
+    avg_per_playlist = analyze_average_popularity_per_album(user_id)
     return render_template("playlist.html", avg_per_playlist=avg_per_playlist)
 
 @app.route("/albums")
