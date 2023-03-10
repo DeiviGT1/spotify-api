@@ -1,39 +1,45 @@
-import pandas as pd
 from pymongo import MongoClient
+from bson import json_util
+import pandas as pd
+from statistics import mean
+from collections import defaultdict
+import json
 
-def _connect_mongo(host, port, username, password, db):
-  if username and password:
-    mongo_uri = 'mongodb://%s:%s@%s:%s/%s' % (username, password, host, port, db)
-    conn = MongoClient(mongo_uri)
-  else:
-    conn = MongoClient(host, port)
+# client = MongoClient("ac-uhdra74-shard-00-01.tefpveq.mongodb.net:27017")
+client = MongoClient('mongodb://localhost:27017/')
+db = client['songs']
+collection = db['songs']
 
+user_id = "317ucfcdwpjhmasybsnbqc2j53jy"
 
-  return conn[db]
-
-def read_mongo(db, collection, query={}, host='localhost', port=27017, username=None, password=None, no_id=True, projection = None):
-    """ Read from Mongo and Store into DataFrame """
-
-    # Connect to MongoDB
-    db = _connect_mongo(host=host, port=port, username=username, password=password, db=db)
-
+def read_mongo(query={}, projection=None):
+    """ Read from Mongo and return data in JSON format """
     # Make a query to the specific DB and Collection
-    cursor = db[collection].find(query, projection)
+    cursor = collection.find(query, projection)
+    data = list(cursor)
+    # Convert list of documents to JSON string
+    json_data = json.dumps(data, default=json_util.default)
+    return json_data
 
-    # Expand the cursor and construct the DataFrame
-    df =  pd.DataFrame(list(cursor))
+def delete_all_documents(query={}):
+    """ Delete all documents from a MongoDB collection """
+    # Delete all documents from the specified collection
+    result = collection.delete_many(query)
+    return result.deleted_count
 
-    # Delete the _id
-    if no_id:
-      return "No id"
-        # del df['_id']
+def analyze_average_popularity_per_album():
+  data = read_mongo(projection={'info.popularity': 1, 'info.playlist_name': 1, '_id': 0})
+  data = json.loads(data)
+  data = [x['info'] for x in data]
+  result = defaultdict(list)
 
-    return df
+  for item in data:
+      result[item['playlist_name']].append(item['popularity'])
 
-new_query = ({}, { "artist_0": 1, "popularity": 1, "_id": 0 })
-x = read_mongo(db = "songs", collection= "songs", projection=['artist_0', 'popularity'])
-x = read_mongo(db = "songs", collection= "songs", query={"artist_0": "Rels B"}, projection=['artist_0', 'popularity'])
+  final_result = [{'playlist_name': k, 'average_popularity': sum(v)/len(v)} for k,v in result.items()]
+  return final_result
 
-# x = read_mongo(db = "songs", collection= "songs", query = {'popularity': {'$lt': 30}}, projection=['artist_0', 'popularity'])
-# x = read_mongo(db = "songs", collection= "songs", query = new_query, projection=['artist_0', 'popularity'])
-print(x)
+  # df = pd.DataFrame(converted)
+  # df = df.groupby('playlist_name').mean()
+  # # df = pd.DataFrame([x['info'] for x in data])
+  # return df
