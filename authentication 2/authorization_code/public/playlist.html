@@ -9,7 +9,7 @@
   <title>Document</title>
 </head>
 <body>
-  <h1>Playlist</h1>
+  <h1>Playlists</h1>
   <div id="playlist"></div>
   <script>
 var json_str = '{{ avg_per_playlist | tojson }}';
@@ -22,10 +22,31 @@ for (var i = 0; i < data.length; i++) {
     var average_popularity = data[i].average_popularity;
     var textNode = document.createTextNode(playlist_name + ': ' + average_popularity);
     var listItem = document.createElement("li");
+    var divProgressBar = document.createElement("div");
+    divProgressBar.setAttribute("class", "progress-bar");
+    divProgressBar.setAttribute("data-progress", "100%");
+    var pProgressBar = document.createElement("p");
+    pProgressBar.setAttribute("class", "progress");
+    pProgressBar.setAttribute("data-progress", average_popularity);
+    pProgressBar.innerHTML = "|";
+
     listItem.appendChild(textNode);
     list.appendChild(listItem);
-}
-recetlyPllayed.appendChild(list);
+    divProgressBar.appendChild(pProgressBar);
+    listItem.appendChild(divProgressBar); 
+  }
+
+  recetlyPllayed.appendChild(list);
+  const progressNumber = document.querySelectorAll('.progress');
+  
+  for (var i = 0; i < progressNumber.length; i++) {
+    var progressNum = progressNumber[i].getAttribute('data-progress');
+    progressNum = parseFloat(progressNum);
+    progressNumber[i].style.left = progressNum + "%";
+    var progressWidth = (100 - progressNum) + "%";
+    console.log(progressWidth)
+    progressNumber[i].style.width = progressWidth;
+  }
   </script>
 </body>
 </html>

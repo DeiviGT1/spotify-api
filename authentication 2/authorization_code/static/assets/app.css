@@ -1,4 +1,51 @@
 body{
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: rgb(249, 175, 175);
+  background-color: rgb(223, 223, 223)
 }
+
+h1{
+  color: #343a40;
+  text-align: center;
+  margin: 2rem;
+}
+
+#playlist{
+  background-color: #343a40;
+  color: #dfdfdf;
+  border-radius: 10px;
+  padding: 10px;
+  margin: 10px;
+  text-align: center;
+}
+
+li{
+  font-size: 24px;
+}
+
+/* # 2 */
+.progress-bar {
+  animation: progress-animation 2s linear forwards;
+  background: linear-gradient(to right, red, yellow, green);
+  border-radius: 10px;
+  height: 2rem;
+}
+
+li{
+  list-style-type: none;
+}
+
+ul{
+  padding: 0;
+}
+
+.progress-bar p {
+  position: relative;
+  font-size: 2rem;
+  text-align: start;
+  color: #343a40;
+  top: -20%;
+}
+/* 
+.progress-bar::after {
+  content: attr(data-progress);
+} */

@@ -32,12 +32,6 @@ STATE = ""
 SHOW_DIALOG_bool = True
 SHOW_DIALOG_str = str(SHOW_DIALOG_bool).lower()
 
-#Mongo Credentials
-# client = MongoClient("ac-uhdra74-shard-00-01.tefpveq.mongodb.net:27017")
-client = MongoClient('mongodb://localhost:27017/')
-db = client['songs']
-collection = db['songs']
-
 #Authorization of application with spotify
 def app_Authorization():
     auth_query_parameters = {
@@ -109,7 +103,5 @@ def Album_Data(header,profile,limit,offset):
     artist_data = json.loads(artist_response.text)
     return artist_data
 
-def Mongo_Song_Data(songs_data):
-    for item in songs_data:
-        collection.insert_one({'info': item})
+
         

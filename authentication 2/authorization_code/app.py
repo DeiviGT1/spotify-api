@@ -1,15 +1,10 @@
 from flask import Flask, request, redirect, g, render_template
 import json
 from pymongo import MongoClient
-from data import read_mongo, delete_all_documents, analyze_average_popularity_per_album
-from spotify import app_Authorization, user_Authorization, Album_Data, Profile_Data, Playlist_Data, Song_Data, Mongo_Song_Data
+from data import read_mongo, delete_all_documents, analyze_average_popularity_per_album, Mongo_Song_Data
+from spotify import app_Authorization, user_Authorization, Album_Data, Profile_Data, Playlist_Data, Song_Data
 
 app = Flask(__name__, static_url_path='/static', template_folder='public')
-
-# client = MongoClient("ac-uhdra74-shard-00-01.tefpveq.mongodb.net:27017")
-client = MongoClient('mongodb://localhost:27017/')
-db = client['songs']
-collection = db['songs']
 
 @app.route("/")
 def index():
@@ -38,6 +33,7 @@ def callback():
 
     #Gathering of playlist data
     playlist_data = Playlist_Data(authorization_header,profile_data)
+    
     x = 0
     playlist_url = []
     playlist_titles = []

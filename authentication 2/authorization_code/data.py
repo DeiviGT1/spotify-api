@@ -19,6 +19,10 @@ def read_mongo(query={}, projection=None):
     json_data = json.dumps(data, default=json_util.default)
     return json_data
 
+def Mongo_Song_Data(songs_data):
+    for item in songs_data:
+        collection.insert_one({'info': item})
+
 def delete_all_documents(query={}):
     """ Delete all documents from a MongoDB collection """
     # Delete all documents from the specified collection
@@ -34,7 +38,7 @@ def analyze_average_popularity_per_album(user_id):
   for item in data:
       result[item['playlist_name']].append(item['popularity'])
 
-  final_result = [{'playlist_name': k, 'average_popularity': sum(v)/len(v)} for k,v in result.items()]
+  final_result = [{'playlist_name': k, 'average_popularity': "{:.2f}".format(sum(v)/len(v))} for k,v in result.items()]
   return final_result
 
   # df = pd.DataFrame(converted)
