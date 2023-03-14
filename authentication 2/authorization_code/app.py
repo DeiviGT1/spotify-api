@@ -72,30 +72,5 @@ def callback():
     avg_per_playlist = analyze_average_popularity_per_album(user_id)
     return render_template("playlist.html", avg_per_playlist=avg_per_playlist)
 
-@app.route("/albums")
-def albums():
-    #Gathering of album data
-    authorization_header = user_Authorization()
-    profile_data = Profile_Data(authorization_header)
-
-    artist_data = Album_Data(authorization_header,profile_data,50,0)
-    x = 0
-    album_titles = []
-    album_uri = []
-    album_label = []
-    album_tracknames = []
-    album_trackartist = []
-    while x < len(artist_data["items"]):
-        b = 0
-        while b < len(artist_data["items"][x]["album"]["tracks"]['items']):
-            album_titles.insert(len(album_titles),artist_data["items"][x]["album"]["name"])
-            album_uri.insert(len(album_uri),artist_data["items"][x]["album"]["uri"])
-            album_label.insert(len(album_label),artist_data["items"][x]["album"]["label"])
-            album_tracknames.insert(len(album_tracknames),artist_data["items"][x]["album"]["tracks"]['items'][b]["name"])
-            album_trackartist.insert(len(album_trackartist),artist_data["items"][x]["album"]["tracks"]['items'][b]["artists"][0]['name'])
-            b = b + 2
-        x = x + 1
-    return album_titles
-
 if __name__ == "__main__":
     app.run(debug = True, port=4000, host="localhost")

@@ -5,9 +5,19 @@ from statistics import mean
 from collections import defaultdict
 import json
 
-# client = MongoClient("ac-uhdra74-shard-00-01.tefpveq.mongodb.net:27017")
-client = MongoClient('mongodb://localhost:27017/')
-db = client['songs']
+usuario = "David"
+contraseña = "David"
+
+# Define la dirección IP del servidor de la base de datos y el nombre de la base de datos
+direccion_ip_servidor = "songs.lohevn5.mongodb.net"
+nombre_base_de_datos = "test"
+
+# Crea una conexión con la base de datos de MongoDB
+uri = f"mongodb+srv://{usuario}:{contraseña}@{direccion_ip_servidor}/{nombre_base_de_datos}" #?retryWrites=true&w=majority
+client = MongoClient(uri)
+
+# Selecciona la base de datos que deseas utilizar
+db = client[nombre_base_de_datos]
 collection = db['songs']
 
 def read_mongo(query={}, projection=None):
@@ -40,8 +50,3 @@ def analyze_average_popularity_per_album(user_id):
 
   final_result = [{'playlist_name': k, 'average_popularity': "{:.2f}".format(sum(v)/len(v))} for k,v in result.items()]
   return final_result
-
-  # df = pd.DataFrame(converted)
-  # df = df.groupby('playlist_name').mean()
-  # # df = pd.DataFrame([x['info'] for x in data])
-  # return df
